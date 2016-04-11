@@ -2,7 +2,7 @@
 Différents projets réalisés au seins d'EPITECH, durant mes 3 premières années.
 
 ## Maths
-[Description]()
+[Description](https://github.com/Gysco/PY_TEK/blob/master/Maths/README.md)
 
 ## Zappy
-[Description]()
+[Description](https://github.com/Gysco/PY_TEK/blob/master/Zappy/README.md)
