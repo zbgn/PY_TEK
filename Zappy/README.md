@@ -8,5 +8,5 @@ il rentrera par la gauche.
 Le jeu se joue par équipe. L'equie gagnante est celle dont les 6 joueurs auront
 atteint l'élévation maximale.
 
-## Le client (IA)
+## [Le client (IA)](https://github.com/Gysco/PY_TEK/blob/master/Zappy/zappy_ai.py)
 Le client pilote un habitant par des ordres qu'il enverra au serveur.
