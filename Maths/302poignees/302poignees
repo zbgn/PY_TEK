@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# @author: beauge_z
+
+import sys
+
+def display(listName, matrixA, matrixL):
+        if len(sys.argv) == 4:
+                if (sys.argv[2] in listName and sys.argv[3] in listName):
+                        print('degré de séparation entre', str(sys.argv[2]), 'et', str(sys.argv[3]), ':', str(matrixL[listName.index(sys.argv[2])][listName.index(sys.argv[3])]))
+                else:
+                        print('degré de séparation entre', str(sys.argv[2]), 'et', str(sys.argv[3]), ': -1')
+        elif len(sys.argv) == 3 and sys.argv[2].isdigit() and int(sys.argv[2]) > 0:
+                for l in listName:
+                        print(l)
+                print()
+                for line in matrixA:
+                        s = ''
+                        for c in line:
+                                 s += str(c) + ' '
+                        print(s[:-1])
+                print()
+                for line in matrixL:
+                        s = ''
+                        for c in line:
+                                if c > int(sys.argv[2]) or c == -1:
+                                        s += str(0) + ' '
+                                else:
+                                        s += str(c) + ' '
+                        print(s[:-1])
+        else:
+                sys.stderr.write('Erreur : Arguments invalides.\n')
+                sys.exit(84)
+        return(True)
+
+def initMatrix(nameList, add=0, val=0):
+        c = list()
+        matrix = list()
+        for i in range(0, len(nameList)+add):
+                c.append(val)
+        for i in range(0, len(nameList)):
+                matrix.append(list(c))
+        return(matrix)
+
+def createLink(nameList, matrixA):
+        n = len(nameList)
+        link = initMatrix(nameList, 0, n+1)
+        for i in range(0, n):
+                temp = initMatrix(nameList, 1, n+1)
+                for j in range(0, n):
+                        for k in range(0, n):
+                                if matrixA[j][k] == 1:
+                                        temp[j][k] = 1
+                degree = 2
+                temp[i][n] = 1
+                for j in range(0, n):
+                        if temp[i][j] == degree - 1:
+                                temp[j][n] = degree
+                                for k in range(0, n):
+                                        if temp[j][k] == degree - 1:
+                                                temp[j][k] = degree
+                for j in range(3, n):
+                        flag = False
+                        for a in range(0, n):
+                                for b in range(0, n):
+                                        if temp[a][b] == j - 1 and temp[a][n] == j - 1:
+                                                for c in range(0, n):
+                                                        if temp[b][c] < j - 1 and temp[b][n] > j -1:
+                                                                temp[b][c] = j
+                                                                temp[b][n] = j
+                                                                flag = True
+                        if flag == False:
+                                j = n
+                link[i] = temp[i][:-1]
+                for a in range(0, n):
+                        po = 14
+                        for b in range(0, n):
+                                if temp[b][a] < po and temp[b][n] < n:
+                                        po = temp[b][a]
+                        if a == i:
+                                po = 0
+                        if po == 14:
+                                po = -1
+                        link[i][a] = po
+        return(link)
+
+def createMatrix():
+        fullNameList = list()
+        friendList = list()
+#        if len(sys.argv) == 1:
+#                sys.stderr.write('Erreur : Nombre d\'arguments invalides.\n')
+#                sys.exit(84)
+        f = open(sys.argv[1])
+        i = 1
+        for line in f:
+                word = line.split(" est ami avec ")
+                if len(word) == 1:
+                        word = line.split(" est amie avec ")
+                if len(word) == 1:
+                        sys.stderr.write('Ligne ' + str(i) + ': Erreur syntax.\n')
+                        sys.exit(84)
+                fullNameList.append(word[0])
+                if word[1][-1] == '\n':
+                        friendList.append([word[0], word[1][:-1]])
+                        fullNameList.append(word[1][:-1])
+                else:
+                        friendList.append([word[0], word[1]])
+                        fullNameList.append(word[1])
+                i += 1
+        fullNameList = sorted(set(fullNameList))
+        matrix = initMatrix(fullNameList)
+        for i in range(0, len(friendList)):
+                if friendList[i][0] is not friendList[i][1]:
+                        matrix[fullNameList.index(friendList[i][0])][fullNameList.index(friendList[i][1])] = 1
+                        matrix[fullNameList.index(friendList[i][1])][fullNameList.index(friendList[i][0])] = 1
+        return (fullNameList, matrix)
+
+if __name__ == '__main__':
+        listName, matrixA = createMatrix()
+        matrixLink = createLink(listName, matrixA)
+        display(listName, matrixA, matrixLink)
+        sys.exit(0)

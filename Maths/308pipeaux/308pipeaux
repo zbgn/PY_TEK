@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# @author: beauge_z, newton_g
+
+import os, sys
+
+class CubicSplineInterp(object):
+    """docstring for CubicSplineInterp"""
+    def __init__(self, r, d, t):
+        super(CubicSplineInterp, self).__init__()
+        self.x0 = [0, 5, 10, 15, 20]
+        if (len(r) != len(self.x0)):
+            print("[ERROR] Bad number of arguments.", file=sys.stderr)
+            sys.exit(84)
+        self.y0 = list(r)
+        self.dot = d
+        self.tick = t
+        self.interp = .0
+        self.pos = 0
+        self.a = list()
+        self.b = list()
+        self.c = list()
+        self.s = list()
+        for i in range(0, self.dot):
+            self.a.append(0)
+            self.b.append(0)
+            self.c.append(0)
+            self.s.append(0)
+        self.s.append(0)
+        self.cSplineCoef()
+
+    def __repr__(self):
+        return "CubicSplineInterp(r, d)\n\tWhere: r, the raduis and d, the number of dot wanted."
+
+    def __str__(self):
+        s = "vecteur résultat : ["
+        for i in range(1, self.dot+1):
+            res = self.s[i]
+            if (int(res * 10)) == 0:
+                self.s[i] = 0.0
+            s += "{0:.1f}, ".format(self.s[i])
+        s = s[:-2] + "]"
+        print(s)
+        for i in range(0, self.tick):
+            abscisse = (20.0 / (self.tick - 1) * i)
+            print("abscisse : %.1f cm\trayon : %.1f cm" %(abscisse, self.cSplineInterp(abscisse)))
+        return ""
+
+    def compute(self, matrix, x, y, n):
+        xx1 = x[2] - x[1]
+        yy1 = (y[2]-y[1])/xx1 * 6.0
+        for i in range(1, n-1):
+            xx2 = x[i + 2] - x[i + 1]
+            yy2 = (y[i+2] - y[i+1]) / xx2 * 6.0
+            matrix[i][1] = xx1
+            matrix[i][2] = 2.0 * (xx1 + xx2)
+            matrix[i][3] = xx2
+            matrix[i][4] = yy2 - yy1
+            xx1 = xx2
+            yy1 = yy2
+        first = 2
+        last = n - 2
+        return (xx1, xx2, first, last, matrix, x, y, n)
+
+    def adjust(self, xx1, xx2, first, last, matrix, x, y, n):
+        """
+        xx1 = x[2] - x[1]
+        xx2 = x[3] - x[2]
+        matrix[1][2] = (xx1 + xx2) * (xx1 + 2.0 * xx2) / xx2
+        matrix[1][3] = (xx2 * xx2 - xx1 * xx1) / xx2
+        xxn2 = x[n - 1] - x[n - 2]
+        xxn1 = x[n] - x[n - 1]
+        matrix[n - 2][1] = (xxn2 * xxn2 - xxn1 * xxn1) / xxn2
+        matrix[n - 2][2] = (xxn1 + xxn2) * (xxn1 + 2.0 * xxn2) / xxn2
+        """
+        for i in range(first, last+1):
+            matrix[i][1] = matrix[i][1] / matrix[i-1][2]
+            matrix[i][2] = matrix[i][2] - matrix[i][1] * matrix[i-1][3]
+            matrix[i][4] = matrix[i][4] - matrix[i][1] * matrix[i-1][4]
+        matrix[last][4] = matrix[last][4]/matrix[last][2]
+        for i in reversed(range(first - 1, last)):
+            matrix[i][4] = (matrix[i][4] - matrix[i][3] * matrix[i + 1][4]) / matrix[i][2]
+        for i in range(first - 1, last+1):
+            self.s[i + 1] = matrix[i][4]
+        self.s[1] = 0.0 #((xx1 + xx2) * self.s[2] - xx1 * self.s[3]) / xx2
+        self.s[n] = 0.0 #((xx2 + xxn1) * self.s[n - 1] - xxn1 * self.s[n - 2]) / xx2
+        return (matrix)
+
+    def cSplineCoef(self):
+        n = self.dot
+        x1 = self.x0[:]
+        y1 = self.y0[:]
+        x1.insert(0, 0);
+        y1.insert(0, 0);
+
+        matrix = list()
+        for y in range(0, n+1):
+            matrix.append(list([0]*5))
+        matrix = self.adjust(*self.compute(matrix, x1, y1, n))
+        for i in range(1, n):
+            self.a[i] = (self.s[i + 1] - self.s[i]) / (6.0 * (x1[i + 1] - x1[i]))
+            self.b[i] = self.s[i] / 2.0
+            self.c[i] = (((y1[i+1] - y1[i]) / (x1[i + 1] - x1[i]))
+                        - ((2.0 * (x1[i + 1] - x1[i]) * self.s[i] + (x1[i + 1] - x1[i]) * self.s[i + 1]) / 6.0))
+
+    def cSplineInterp(self, x):
+        n = self.dot
+        x1 = self.x0[:]
+        y1 = self.y0[:]
+        x1.insert(0, 0);
+        y1.insert(0, 0);
+        dx = .0
+
+        if self.pos > n:
+            self.pos = 1
+        if (x >= x1[n - 1]):
+            dx = x - x1[n - 1]
+            return (y1[n - 1] + dx * (self.c[n - 1] +
+                    dx * (self.b[n - 1]+ dx * self.a[n - 1])))
+        else:
+            self.pos = 1
+            j = n + 1
+            while j > self.pos + 1:
+                k = int((self.pos + j) / 2)
+                if (x < x1[k]):
+                    j = k
+                else:
+                    self.pos = k
+            dx = x - x1[self.pos]
+            return (y1[self.pos] + dx * (self.c[self.pos] +
+                    dx * (self.b[self.pos]+ dx * self.a[self.pos])))
+
+def pipeaux(r, d, t):
+    pipeau = CubicSplineInterp(r, d, t)
+    print(pipeau, end="")
+    return (0)
+
+def main():
+    r = list()
+    if len(sys.argv) != 7:
+        print("[ERROR] Bad number of arguments.", file=sys.stderr)
+        return(84)
+    try:
+        for i in range(1, len(sys.argv)):
+                if float(sys.argv[i]) < 0:
+                    print("[ERROR] \'%s\': Invalid number, distance can only be greater or equal to 0.\n" %(sys.argv[i]), file=sys.stderr)
+                    return (84)
+                if (i < (len(sys.argv) - 1)):
+                    r.append(float(sys.argv[i]))
+    except ValueError:
+        print("[ERROR] \'%s\': Wrong type, should be a number.\n" %(sys.argv[i]), file=sys.stderr)
+        return (84)
+    return (pipeaux(r, len(r), int(sys.argv[6])))
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# @author: beauge_z
+
+import sys, os
+
+euro = "euro" if os.name == "nt" else "€"
+
+class Simplex(object):
+    """Simplex Method"""
+    def __init__(self, e, c):
+        super(Simplex, self).__init__()
+        self.matrix = [[1.0, 0.0, 1.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, e[0]],
+                       [1.0, 2.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, e[1]],
+                       [2.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, e[2]],
+                       [0.0, 0.0, 3.0, 1.0, 2.0, 0.0, 0.0, 0.0, 1.0, 0.0, e[3]],
+                       [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                       [c[0], c[1], c[2], c[3], c[4], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+        self.product = [-1, -1, -1, -1, -1]
+        self.setMatrix(e)
+        self.e = list(e)
+        self.e2 = list(e)
+        self.pivot = [-1, -1]
+        self.calc()
+
+    def setMatrix(self, e):
+        for i in range(0, len(e)):
+            if e[i] == 0:
+                for x in range(0, 5):
+                    if self.matrix[i][x] > 0:
+                        for y in range(0, len(self.matrix)):
+                            self.matrix[y][x] = 0.0
+
+    def getResult(self):
+        res = [0, 0, 0, 0,0]
+        for i in range(0, len(self.product)):
+            if self.product[i] != -1:
+                res[self.product[i]] = self.matrix[i][len(self.matrix[0]) - 1]
+        return(res)
+
+    def calc(self):
+        while self.isNeg() > 0:
+            self.pivot[1] = self.matrix[len(self.matrix) - 1].index(max(self.matrix[len(self.matrix) - 1]))
+            self.e = list(self.e2)
+            for y in range(0, len(self.e)):
+                if self.matrix[y][self.pivot[1]] <= 0:
+                    self.e[y] = float("inf")
+                else:
+                    self.e[y] /= self.matrix[y][self.pivot[1]]
+            self.pivot[0] = self.e.index(min(filter(None, self.e)))
+            self.product[self.pivot[0]] = self.pivot[1]
+            newmatrix = list()
+            for m in self.matrix:
+                newmatrix.append(list(m))
+            for y in range(0, len(self.matrix)):
+                    for x in range(0, len(self.matrix[0])):
+                        if y != self.pivot[0]:
+                            newmatrix[y][x] -= ((self.matrix[y][self.pivot[1]]/self.matrix[self.pivot[0]][self.pivot[1]]) * self.matrix[self.pivot[0]][x])
+                        else:
+                            newmatrix[y][x] /= self.matrix[self.pivot[0]][self.pivot[1]]
+                        #print(self.matrix[y][x])
+            self.matrix = list()
+            for m in newmatrix:
+                self.matrix.append(list(m))
+
+    def isNeg(self):
+        ret = 0
+        for x in range(0, len(self.matrix[0])):
+            if self.matrix[len(self.matrix) - 1][x] > 0:
+                ret += 1
+        return (ret)
+
+def display_bis(name, i, res, c):
+    if (res[i] <= 0):
+        res[i] = 0
+        print("%s:\t%d unité\t\tà %d %s/unité" %(name, res[i], c[i], euro))
+    else:
+        print("%s:\t%.2f %s\tà %d %s/unité" %(name, res[i], "unité" if res[i] <= 1 else "unités", c[i], euro))
+
+def display(res, e, c):
+    print("ressources : %d E1, %d E2, %d E3, %d E4" %(e[0], e[1], e[2], e[3]))
+    print()
+    display_bis("avoine", 0, res, c)
+    display_bis("blé", 1, res, c)
+    display_bis("maïs", 2, res, c)
+    display_bis("orge", 3, res, c)
+    display_bis("soja", 4, res, c)
+    v = 0
+    for i in range(0, len(res)):
+        v += res[i] * c[i]
+    print()
+    print("valeur totale de la production : %.2f %s" %(v, euro))
+    return (0)
+
+def cereales(e, c):
+    res = Simplex(e, c)
+    return (display(res.getResult(), e, c))
+
+def main():
+    i = 0
+    e = list()
+    c = list()
+    if len(sys.argv) != 10:
+        sys.stderr.write("ERROR: bad number of arguments.\n")
+        return (84)
+    try:
+        for i in range(1, len(sys.argv)):
+            if i <= 4:
+                if float(sys.argv[i]) < 0:
+                    sys.stderr.write("ERROR: \'" + sys.argv[i] + "\': Invalid number, should be greater or equal to 0.\n")
+                    return (84)
+                e.append(float(sys.argv[i]))
+            else:
+                if float(sys.argv[i]) <= 0:
+                    sys.stderr.write("ERROR: \'" + sys.argv[i] + "\': Invalid price, should be greater than 0.\n")
+                    return (84)
+                c.append(float(sys.argv[i]))
+    except ValueError:
+        sys.stderr.write("ERROR: \'" + sys.argv[i] + "\': Wrong type, should be a number.\n")
+        return (84)
+    return(cereales(e, c))
+
+if __name__ == '__main__':
+    sys.exit(main())
